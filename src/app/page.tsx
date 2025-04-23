@@ -9,8 +9,8 @@ export default function BadgeCreator() {
   const [name, setName] = useState('Your name and title');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setProfileImageName(file.name);
       const reader = new FileReader();
