@@ -1,103 +1,137 @@
-import Image from "next/image";
+'use client';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/button';
 
-export default function Home() {
+export default function BadgeCreator() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>('/placeholder-avatar.png');
+  const [profileImageName, setProfileImageName] = useState('');
+  const [name, setName] = useState('Your name and title');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImageName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => setProfileImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const background = new Image();
+    background.src = '/joinme_attending.jpg';
+    background.onload = () => {
+      ctx.drawImage(background, 0, 0, 1200, 627);
+
+      if (profileImage) {
+        const profile = new Image();
+        profile.src = profileImage;
+        profile.onload = () => {
+          // Strict bounding box enforcement
+          const boxX = 810;
+          const boxY = 155;
+          const boxW = 318;
+          const boxH = 365;
+
+          const imgRatio = profile.width / profile.height;
+          const boxRatio = boxW / boxH;
+
+          let drawWidth = boxW;
+          let drawHeight = boxH;
+
+          if (imgRatio > boxRatio) {
+            drawHeight = boxH;
+            drawWidth = boxH * imgRatio;
+          } else {
+            drawWidth = boxW;
+            drawHeight = boxW / imgRatio;
+          }
+
+          const sx = (drawWidth - boxW) / 2 / drawWidth * profile.width;
+          const sy = (drawHeight - boxH) / 2 / drawHeight * profile.height;
+          const sWidth = profile.width - 2 * sx;
+          const sHeight = profile.height - 2 * sy;
+
+          ctx.drawImage(profile, sx, sy, sWidth, sHeight, boxX, boxY, boxW, boxH);
+
+          ctx.font = '20px sans-serif';
+          ctx.fillStyle = 'white';
+
+          // Wrap name if too long
+          const maxWidth = 318;
+          const lines = [];
+          let currentLine = '';
+          const words = name.split(' ');
+
+          for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            const { width } = ctx.measureText(testLine);
+            if (width > maxWidth && currentLine !== '') {
+              lines.push(currentLine);
+              currentLine = word + ' ';
+            } else {
+              currentLine = testLine;
+            }
+          }
+          lines.push(currentLine);
+
+          lines.forEach((line, i) => {
+            ctx.fillText(line.trim(), 810, 550 + i * 24);
+          });
+        };
+      }
+    };
+  };
+
+  useEffect(() => {
+    drawCanvas();
+  }, []);
+
+  const downloadImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'badge.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="flex flex-col items-center gap-4 p-6">
+      <div className="flex items-center gap-2 max-w-xs w-full">
+        <Button className="whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>Upload Image</Button>
+        <input
+          type="text"
+          value={profileImageName}
+          readOnly
+          placeholder="No file selected"
+          className="flex-1 border p-2 rounded text-sm text-gray-600 bg-gray-100"
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          ref={fileInputRef}
+          className="hidden"
+        />
+      </div>
+      <input
+        type="text"
+        placeholder="Your Name and Title"
+        className="border p-2 rounded"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Button onClick={drawCanvas}>Preview</Button>
+      <canvas ref={canvasRef} width={1200} height={627} className="mt-4 border" />
+      <Button onClick={downloadImage}>Download Image</Button>
     </div>
   );
 }
