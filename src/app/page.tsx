@@ -4,10 +4,65 @@ import { Button } from '@/components/button';
 
 export default function BadgeCreator() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasWidth, setCanvasWidth] = useState(1200); // Default width
+  const [canvasHeight, setCanvasHeight] = useState(627); // Default height
   const [profileImage, setProfileImage] = useState<string | null>('/placeholder-avatar.png');
   const [profileImageName, setProfileImageName] = useState('');
   const [name, setName] = useState('Your name and title');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Handle resizing of avatar image
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
+  const [imageScale, setImageScale] = useState(1);
+
+  // Allow resizing of the image with the mouse
+  const isDragging = useRef(false);
+  const lastPosition = useRef({ x: 0, y: 0 });
+
+  const startDragging = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    isDragging.current = true;
+    lastPosition.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const stopDragging = () => {
+    isDragging.current = false;
+  };
+
+  const onDrag = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging.current) return;
+    const deltaX = e.clientX - lastPosition.current.x;
+    const deltaY = e.clientY - lastPosition.current.y;
+    setImageOffset((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+    lastPosition.current = { x: e.clientX, y: e.clientY };
+  };
+
+  // Allows zoom with wheel
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const scaleAmount = e.deltaY < 0 ? 0.05 : -0.05;
+    setImageScale((prev) => Math.max(0.1, prev + scaleAmount));
+  };
+  
+
+
+  const handleResize = () => {
+    const screenWidth = window.innerWidth;
+    const maxWidth = 1200; // Original canvas width
+    const aspectRatio = 1200 / 627; // Maintain aspect ratio
+
+    if (screenWidth < maxWidth) {
+      setCanvasWidth(screenWidth - 20); // Add some padding
+      setCanvasHeight((screenWidth - 20) / aspectRatio);
+    } else {
+      setCanvasWidth(maxWidth);
+      setCanvasHeight(maxWidth / aspectRatio);
+    }
+  };
+
+  useEffect(() => {
+    handleResize(); // Set initial size
+    window.addEventListener('resize', handleResize); // Update on resize
+    return () => window.removeEventListener('resize', handleResize); // Cleanup
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,6 +79,16 @@ export default function BadgeCreator() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Reset the transformation matrix to prevent cumulative scaling
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Scale the canvas drawing to match the new dimensions
+    // ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+    ctx.scale(canvas.width / 1200, canvas.height / 627);
 
     const background = new Image();
     background.src = '/joinme_attending.jpg';
@@ -54,13 +119,27 @@ export default function BadgeCreator() {
             drawHeight = boxW / imgRatio;
           }
 
-          const sx = (drawWidth - boxW) / 2 / drawWidth * profile.width;
-          const sy = (drawHeight - boxH) / 2 / drawHeight * profile.height;
-          const sWidth = profile.width - 2 * sx;
-          const sHeight = profile.height - 2 * sy;
+          // const sx = (drawWidth - boxW) / 2 / drawWidth * profile.width;
+          // const sy = (drawHeight - boxH) / 2 / drawHeight * profile.height;
+          // const sWidth = profile.width - 2 * sx;
+          // const sHeight = profile.height - 2 * sy;
 
-          ctx.drawImage(profile, sx, sy, sWidth, sHeight, boxX, boxY, boxW, boxH);
+          // Draw the image
+          // ctx.drawImage(profile, sx, sy, sWidth, sHeight, boxX, boxY, boxW, boxH);
+          const scaledW = drawWidth * imageScale;
+          const scaledH = drawHeight * imageScale;
+          const dx = boxX + imageOffset.x + (boxW - scaledW) / 2;
+          const dy = boxY + imageOffset.y + (boxH - scaledH) / 2;
 
+          // ctx.drawImage(profile, sx, sy, sWidth, sHeight, dx, dy, scaledW, scaledH);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(boxX, boxY, boxW, boxH);
+          ctx.clip();
+          ctx.drawImage(profile, 0, 0, profile.width, profile.height, dx, dy, scaledW, scaledH);
+          ctx.restore(); // termina el clipping
+
+          // Luego puedes continuar con el texto sin problemas
           ctx.font = '20px sans-serif';
           ctx.fillStyle = 'white';
 
@@ -92,7 +171,7 @@ export default function BadgeCreator() {
 
   useEffect(() => {
     drawCanvas();
-  }, []);
+  }, [canvasWidth, canvasHeight, profileImage, name, imageOffset, imageScale]);
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
@@ -128,9 +207,21 @@ export default function BadgeCreator() {
         className="border p-2 rounded"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onFocus={(e) => e.target.select()}
       />
       <Button onClick={drawCanvas}>Preview</Button>
-      <canvas ref={canvasRef} width={1200} height={627} className="mt-4 border" />
+      <canvas
+      ref={canvasRef}
+      width={canvasWidth}
+      height={canvasHeight}
+      className="mt-4 border"
+      style={{ width: canvasWidth, height: canvasHeight, cursor: 'grab' }}
+      onMouseDown={startDragging}
+      onMouseMove={onDrag}
+      onMouseUp={stopDragging}
+      onMouseLeave={stopDragging}
+      onWheel={handleWheel}
+    />
       <Button onClick={downloadImage}>Download Image</Button>
     </div>
   );
