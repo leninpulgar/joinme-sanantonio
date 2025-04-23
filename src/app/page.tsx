@@ -18,21 +18,23 @@ export default function BadgeCreator() {
   const isDragging = useRef(false);
   const lastPosition = useRef({ x: 0, y: 0 });
 
-  const startDragging = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDragging = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     isDragging.current = true;
-    lastPosition.current = { x: e.clientX, y: e.clientY };
+    const point = 'touches' in e ? e.touches[0] : e;
+    lastPosition.current = { x: point.clientX, y: point.clientY };
   };
 
   const stopDragging = () => {
     isDragging.current = false;
   };
 
-  const onDrag = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const onDrag = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDragging.current) return;
-    const deltaX = e.clientX - lastPosition.current.x;
-    const deltaY = e.clientY - lastPosition.current.y;
+    const point = 'touches' in e ? e.touches[0] : e;
+    const deltaX = point.clientX - lastPosition.current.x;
+    const deltaY = point.clientY - lastPosition.current.y;
     setImageOffset((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
-    lastPosition.current = { x: e.clientX, y: e.clientY };
+    lastPosition.current = { x: point.clientX, y: point.clientY };
   };
 
   // Allows zoom with wheel
