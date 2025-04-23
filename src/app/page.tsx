@@ -18,23 +18,55 @@ export default function BadgeCreator() {
   const isDragging = useRef(false);
   const lastPosition = useRef({ x: 0, y: 0 });
 
+  const lastDistance = useRef<number | null>(null);
+  // const getTouchPoint = (e: React.TouchEvent<HTMLCanvasElement>) => e.touches[0];
+
+  const getTouchDistance = (e: TouchEvent | React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length < 2) return null;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const startDragging = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     isDragging.current = true;
-    const point = 'touches' in e ? e.touches[0] : e;
-    lastPosition.current = { x: point.clientX, y: point.clientY };
+    if ('touches' in e) {
+      lastPosition.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastDistance.current = getTouchDistance(e);
+    } else {
+      lastPosition.current = { x: e.clientX, y: e.clientY };
+    }
   };
 
   const stopDragging = () => {
     isDragging.current = false;
+    lastDistance.current = null;
   };
 
   const onDrag = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDragging.current) return;
-    const point = 'touches' in e ? e.touches[0] : e;
-    const deltaX = point.clientX - lastPosition.current.x;
-    const deltaY = point.clientY - lastPosition.current.y;
-    setImageOffset((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
-    lastPosition.current = { x: point.clientX, y: point.clientY };
+
+    if ('touches' in e) {
+      if (e.touches.length === 2) {
+        const currentDistance = getTouchDistance(e);
+        if (lastDistance.current !== null && currentDistance !== null) {
+          const delta = currentDistance - lastDistance.current;
+          setImageScale((prev) => Math.max(0.1, prev + delta * 0.005));
+        }
+        lastDistance.current = currentDistance;
+        return;
+      }
+      const point = e.touches[0];
+      const deltaX = point.clientX - lastPosition.current.x;
+      const deltaY = point.clientY - lastPosition.current.y;
+      setImageOffset((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      lastPosition.current = { x: point.clientX, y: point.clientY };
+    } else {
+      const deltaX = e.clientX - lastPosition.current.x;
+      const deltaY = e.clientY - lastPosition.current.y;
+      setImageOffset((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      lastPosition.current = { x: e.clientX, y: e.clientY };
+    }
   };
 
   // Allows zoom with wheel
