@@ -33,6 +33,24 @@ export default function BadgeCreator() {
     }
   };
 
+  // 🔸 NEW: improved iOS gesture override using document-level event listener
+  useEffect(() => {
+    const preventGesture = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+  
+    // Add event listeners for non-standard gesture events
+    document.addEventListener("gesturestart", preventGesture as EventListener, { passive: false });
+    document.addEventListener("gesturechange", preventGesture as EventListener, { passive: false });
+    document.addEventListener("touchmove", preventGesture as EventListener, { passive: false });
+  
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture as EventListener);
+      document.removeEventListener("gesturechange", preventGesture as EventListener);
+      document.removeEventListener("touchmove", preventGesture as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
