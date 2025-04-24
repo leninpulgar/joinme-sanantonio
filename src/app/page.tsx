@@ -28,6 +28,23 @@ export default function BadgeCreator() {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
+  const preventDefaultTouch = (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.addEventListener('touchstart', preventDefaultTouch, { passive: false });
+    canvas.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', preventDefaultTouch);
+      canvas.removeEventListener('touchmove', preventDefaultTouch);
+    };
+  }, []);
+
   const startDragging = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     isDragging.current = true;
     if ('touches' in e) {
