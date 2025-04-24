@@ -152,6 +152,15 @@ export default function BadgeCreator() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 🔸 Forzar resolución real fija
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = 1200 * dpr;
+    canvas.height = 627 * dpr;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+    ctx.scale(dpr, dpr); // Escalar todo por pixel ratio
+
     // Reset the transformation matrix to prevent cumulative scaling
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
