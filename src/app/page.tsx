@@ -19,7 +19,6 @@ export default function BadgeCreator() {
   const lastPosition = useRef({ x: 0, y: 0 });
 
   const lastDistance = useRef<number | null>(null);
-  // const getTouchPoint = (e: React.TouchEvent<HTMLCanvasElement>) => e.touches[0];
 
   const getTouchDistance = (e: TouchEvent | React.TouchEvent<HTMLCanvasElement>) => {
     if (e.touches.length < 2) return null;
@@ -37,8 +36,12 @@ export default function BadgeCreator() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.addEventListener('touchstart', preventDefaultTouch, { passive: false });
-    canvas.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+
+    // 🔹 FIX: block default zoom gesture on iOS (Safari & Chrome) reliably
+    const opts = { passive: false } as EventListenerOptions;
+    canvas.addEventListener('touchstart', preventDefaultTouch, opts);
+    canvas.addEventListener('touchmove', preventDefaultTouch, opts);
+
     return () => {
       canvas.removeEventListener('touchstart', preventDefaultTouch);
       canvas.removeEventListener('touchmove', preventDefaultTouch);
