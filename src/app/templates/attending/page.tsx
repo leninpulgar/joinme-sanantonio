@@ -171,7 +171,7 @@ export default function BadgeCreator() {
     ctx.scale(canvas.width / 1200, canvas.height / 627);
 
     const background = new Image();
-    background.src = '/joinme_attending.jpg';
+    background.src = '/attending.jpg';
     background.onload = () => {
       ctx.drawImage(background, 0, 0, 1200, 627);
 
